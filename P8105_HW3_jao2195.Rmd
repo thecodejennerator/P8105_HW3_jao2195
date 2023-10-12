@@ -25,23 +25,40 @@ This homework includes figures; the readability of your embedded plots (e.g. fon
 ### Problem 1
 This problem uses the Instacart data. DO NOT include this dataset in your local data directory; instead, load the data from the p8105.datasets using:
 
-```{r}
-# Loading Necessary Libraries
+```{r,message=FALSE}
+# Loading My Libraries
+library(readxl)
+library(ggplot2)
+library(tidyverse)
+library(readr)
+library(lubridate)
+library(magrittr)
+library(dplyr)
 
 ```
 
 
 ```{r}
+#Loading Instacart Data 
 library(p8105.datasets)
 data("instacart")
 
 ```
 
-
-The goal is to do some exploration of this dataset. To that end, write a short description of the dataset, noting the size and structure of the data, describing some key variables, and giving illstrative examples of observations. Then, do or answer the following (commenting on the results of each):
+The goal is to do some exploration of this dataset. To that end, write a short description of the dataset, noting the size and structure of the data, describing some key variables, and giving illustrative examples of observations. Then, do or answer the following (commenting on the results of each):
 
 How many aisles are there, and which aisles are the most items ordered from?
 Make a plot that shows the number of items ordered in each aisle, limiting this to aisles with more than 10000 items ordered. Arrange aisles sensibly, and organize your plot so others can read it.
+
+```{r}
+#Renaming main dataset
+insta = instacart 
+
+#Number of Aisles
+View(insta)
+num_aisles = nrow(unique(insta$aisle))
+
+```
 
 Make a table showing the three most popular items in each of the aisles “baking ingredients”, “dog food care”, and “packaged vegetables fruits”. Include the number of times each item is ordered in your table.
 Make a table showing the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week; format this table for human readers (i.e. produce a 2 x 7 table).
@@ -51,7 +68,7 @@ Make a table showing the mean hour of the day at which Pink Lady Apples and Coff
 This problem uses the BRFSS data. DO NOT include this dataset in your local data directory; instead, load the data from the p8105.datasets package using
 
 ```{r}
-# Loading brfss dataset 
+# Loading brfss data
 library(p8105.datasets)
 data("brfss_smart2010")
 ```
@@ -64,7 +81,28 @@ include only responses from “Excellent” to “Poor”
 Using this dataset, do or answer the following (commenting on the results of each):
 
 ```{r}
+#Formatting data using appropriate variable names; Topic "Overall Health".
 
+brfss = brfss_smart2010
+
+brfss = brfss %>% #Overwritting dataset
+        janitor::clean_names() %>%  #Cleaning Dataset
+        filter(topic == "Overall Health") %>%  #Filtering Dataset down to Overall Health Topic
+        filter(response == "Excellent" | response == "Very good"| response == "Good" | response =="Fair" | response =="Poor") %>%         #Selecting Responses that were on the scale of Excellent down to Poor
+        mutate(response=fct_relevel(response,c("Poor", "Fair", "Good", "Very good", "Excellent"))) 
+        #Organizing the factor level, ordered from Poor to Excellent, where Poor Factor Level == 1 
+        #and Excellent Factor Level == 5.
+        
+
+
+#Checking Data -- Scrap Code(Commented Out)
+# nrow(brfss)
+# View(brfss)
+# class(brfss$response)
+# is.factor(brfss$response)
+# levels (brfss$response)
+# as.numeric(brfss$response)
+# unique(brfss)
 ```
 
 In 2002, which states were observed at 7 or more locations? What about in 2010?
@@ -72,6 +110,19 @@ Construct a dataset that is limited to Excellent responses, and contains, year, 
 
 ```{r}
 
+mystates = unique(brfss$locationabbr)
+
+# brfss_states = brfss %>%  
+#                filter(response == "Excellent") %>% 
+#                mutate(state_average = ifelse(mystates, locationabbr == ))
+#  
+# 
+# for i in nrow(brfss)
+#     if locationabbr[i]
+# 
+# unique(brfss_states$geo_location)               
+# nrow(brfss_states)
+# nrow(unique(brfss_states$geo_location))
 ```
 
 Make a two-panel plot showing, for the years 2006, and 2010, distribution of data_value for responses (“Poor” to “Excellent”) among locations in NY State.
