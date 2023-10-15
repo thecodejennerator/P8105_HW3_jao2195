@@ -6,7 +6,7 @@ output: github_document
 ---
 
 ################################################################################
-### Problem 0
+### Problem 0 
 This “problem” focuses on structure of your submission, especially the use git and GitHub for reproducibility, R Projects to organize your work, R Markdown to write reproducible reports, relative paths to load data from local files, and reasonable naming structures for your files.
 
 To that end:
@@ -34,9 +34,38 @@ library(readr)
 library(lubridate)
 library(magrittr)
 library(dplyr)
+library(ggridges)
+library(patchwork)
+library(p8105.datasets)
 
 ```
 
+```{r setup, include=FALSE}
+library(tidyverse)
+library(ggridges)
+library(patchwork)
+
+library(p8105.datasets)
+
+knitr::opts_chunk$set(
+	echo = TRUE,
+	warning = FALSE,
+	fig.width = 8, 
+  fig.height = 6,
+  out.width = "90%"
+)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+
+```
 
 ```{r}
 #Loading Instacart Data 
@@ -52,12 +81,13 @@ Make a plot that shows the number of items ordered in each aisle, limiting this 
 
 ```{r}
 #Renaming main dataset
-insta = instacart 
+insta = instacart
 
+#class(insta)
 #Number of Aisles
-View(insta)
+# View(insta)
 num_aisles = nrow(unique(insta$aisle))
-
+num_aisles
 ```
 
 Make a table showing the three most popular items in each of the aisles “baking ingredients”, “dog food care”, and “packaged vegetables fruits”. Include the number of times each item is ordered in your table.
@@ -65,73 +95,106 @@ Make a table showing the mean hour of the day at which Pink Lady Apples and Coff
 
 ################################################################################
 ### Problem 2
-This problem uses the BRFSS data. DO NOT include this dataset in your local data directory; instead, load the data from the p8105.datasets package using
+
+#### Problem [2.1] - This problem uses the BRFSS data. DO NOT include this dataset in your local data directory; instead, load the data from the p8105.datasets package using
 
 ```{r}
-# Loading brfss data
+# Loading brfss data directly; not storing to local directory
 library(p8105.datasets)
 data("brfss_smart2010")
 ```
 
-
-First, do some data cleaning:
-1) Format the data to use appropriate variable names;focus on the “Overall Health” topic
-include only responses from “Excellent” to “Poor”
-2) Organize responses as a factor taking levels ordered from “Poor” to “Excellent”
-Using this dataset, do or answer the following (commenting on the results of each):
+#### Problem [2.2] - First, do some data cleaning: 1) Format the data to use appropriate variable names;focus on the “Overall Health” topic include only responses from “Excellent” to “Poor”. 2) Organize responses as a factor taking levels ordered from “Poor” to “Excellent”.
 
 ```{r}
 #Formatting data using appropriate variable names; Topic "Overall Health".
 
-brfss = brfss_smart2010
+brfss = brfss_smart2010 #Renaming Dataset to shorter name 
+
 
 brfss = brfss %>% #Overwritting dataset
-        janitor::clean_names() %>%  #Cleaning Dataset
+        janitor::clean_names() %>%  #Cleaning Dataset / checking appropriate variable names
         filter(topic == "Overall Health") %>%  #Filtering Dataset down to Overall Health Topic
         filter(response == "Excellent" | response == "Very good"| response == "Good" | response =="Fair" | response =="Poor") %>%         #Selecting Responses that were on the scale of Excellent down to Poor
-        mutate(response=fct_relevel(response,c("Poor", "Fair", "Good", "Very good", "Excellent"))) 
+        mutate(response=fct_relevel(response,c("Poor", "Fair", "Good", "Very good", "Excellent"))) %>% 
         #Organizing the factor level, ordered from Poor to Excellent, where Poor Factor Level == 1 
         #and Excellent Factor Level == 5.
-        
+        rename(state = locationabbr) %>% #Renaming to more appropriate variable name
+        rename(state_county = locationdesc) #Renaming to more appropriate variable name
 
-
-#Checking Data -- Scrap Code(Commented Out)
-# nrow(brfss)
-# View(brfss)
-# class(brfss$response)
-# is.factor(brfss$response)
-# levels (brfss$response)
-# as.numeric(brfss$response)
-# unique(brfss)
 ```
 
-In 2002, which states were observed at 7 or more locations? What about in 2010?
-Construct a dataset that is limited to Excellent responses, and contains, year, state, and a variable that averages the data_value across locations within a state. Make a “spaghetti” plot of this average value over time within a state (that is, make a plot showing a line for each state across years – the geom_line geometry and group aesthetic will help).
+#### Problem [2.3] Using this dataset, do or answer the following (commenting on the results of each): In 2002, which states were observed at 7 or more locations? What about in 2010?
 
 ```{r}
+#Determining States Observed at 7 or more locations in 2002.
+brfss_states_2002 = brfss %>% #Piping 
+  group_by(state, year) %>% #Grouping by state, year.
+  summarize(n_locations = n()) %>% #Summarizing 
+  filter(n_locations >= 7 & year== 2002) #Filtering down to >7 and year == 2002 criteria to answer question.
 
-mystates = unique(brfss$locationabbr)
+#Determining States Observed at 7 or more locations in 2010.
+brfss_states_2010 = brfss %>% #Piping 
+  group_by(state, year) %>% #Grouping by state, year.
+  summarize(n_locations = n()) %>% #Summarizing 
+  filter(n_locations >= 7 & year== 2010) #Filtering down to >7 and year == 2010 criteria to answer question.
 
-# brfss_states = brfss %>%  
-#                filter(response == "Excellent") %>% 
-#                mutate(state_average = ifelse(mystates, locationabbr == ))
-#  
-# 
-# for i in nrow(brfss)
-#     if locationabbr[i]
-# 
-# unique(brfss_states$geo_location)               
-# nrow(brfss_states)
-# nrow(unique(brfss_states$geo_location))
+#Listing States that meet the requested criteria:
+states2002 = select(brfss_states_2002,state)
+states2010 = select(brfss_states_2010,state)
+
+# There are `r nrow(states2002)` states that were observed at 7 or more locations in 2002. 
+# The `r nrow(states2002)` states in 2002 were: `r states2002`.
+# There are `r nrow(states2010)` states that were observed at 7 or more locations in 2010. 
+# The `r nrow(states2010)` states in 2010 were: `r states2002`.
+# There are `r nrow(states2010) - nrow(states2002)` more states that meet this criteria in 2010, than in 2002. 
+```
+#### Problem [2.3] Comments on the Results of the Data:
+
+
+
+
+#### Problem [2.4] Construct a dataset that is limited to Excellent responses, and contains, year, state, and a variable that averages the data_value across locations within a state. Make a “spaghetti” plot of this average value over time within a state (that is, make a plot showing a line for each state across years – the geom_line geometry and group aesthetic will help).
+
+```{r}
+excellent_only <- brfss %>% 
+  filter(response=="Excellent") %>% 
+  group_by(year, state) %>% 
+  summarize(average_data_value = mean(data_value, na.rm = TRUE))
+
+
+excellent_spaghetti_plot = ggplot(excellent_only, 
+                           aes(x=year, y=average_data_value, color=state, group=state))+
+                           geom_point()+
+                           geom_line()+
+                           labs(title = "Plot:The Average Value By State from 2002 to 2010",
+                           x = "Years",
+                           y = "Average data value",
+                           color = "States",
+                           )+
+                           theme(legend.position = "left")
+
+excellent_spaghetti_plot
 ```
 
 Make a two-panel plot showing, for the years 2006, and 2010, distribution of data_value for responses (“Poor” to “Excellent”) among locations in NY State.
 
 ```{r}
 
+brfss_panel <- brfss %>% 
+  filter(state=="NY" & year %in% c(2006,2010)) 
+
+
+# myplot = ggplot(brfss_panel, aes(x = data_value, fill = response)) +
+#   geom_density(alpha = .) + 
+#   facet_grid(~ year) + 
+#   viridis::scale_fill_viridis(discrete = TRUE)+
+#   labs(title = "Poor” to “Excellent” Distribution of data_value",
+#        x="Data Value",
+#        y="Density")
+# 
+# myplot
 ```
-
-
 
 ################################################################################
 ### Problem 3
@@ -140,27 +203,106 @@ Accelerometers have become an appealing alternative to self-report techniques fo
 
 This problem uses accelerometer data collected on 250 participants in the NHANES study. The participants’ demographic data can be downloaded here, and their accelerometer data can be downloaded here. Variables *MIMS are the MIMS values for each minute of a 24-hour day starting at midnight.
 
-Load, tidy, merge, and otherwise organize the data sets. Your final dataset should include all originally observed variables; exclude participants less than 21 years of age, and those with missing demographic data; and encode data with reasonable variable classes (i.e. not numeric, and using factors with the ordering of tables and plots in mind).
+### Problem [3.1] - Load, tidy, merge, and otherwise organize the data sets. Your final dataset should include all originally observed variables; exclude participants less than 21 years of age, and those with missing demographic data; and encode data with reasonable variable classes (i.e. not numeric, and using factors with the ordering of tables and plots in mind).
+
 
 ```{r}
+#Importing Nhanes Dataset Covar
+nhanes_covar =  read_csv("nhanes_covar.csv",
+    skip = 4, na = "NA") %>%  #Loading data
+    janitor::clean_names() %>%  #Tidying Data
+    drop_na() %>% #Excluding participants with missing demographic data (with NAs) in their cells
+    filter(age >= 21) %>% #Kepping participants that are greater than or equal to 21 yrs
+    mutate(education = factor(education, levels = c(1, 2, 3), labels = c("Less than high school", "High school equivalent", "More than high school"))) %>% #Creating Factor levels for education
+ mutate(sex = ifelse(sex == 1, "Male", "Female")) # Changing sex from numeric to character 
+
+# Importing Nhanes Dataset Accel
+nhanes_accel =  read_csv("nhanes_accel.csv") %>% #Imporing Accelerometer data 
+                janitor::clean_names() # Cleaning Names
+  
+# Merge NHANES COVAR & NHANES ACCEL
+ merged_covar_accel= left_join(nhanes_covar, nhanes_accel, by= "seqn")
 
 ```
 
-Produce a reader-friendly table for the number of men and women in each education category, and create a visualization of the age distributions for men and women in each education category. Comment on these items.
+
+### Problem [3.2]  Produce a reader-friendly table for the number of men and women in each education category, and create a visualization of the age distributions for men and women in each education category. Comment on these items.
 
 ```{r}
+#Reader Friendly Table 
+mytable = merged_covar_accel %>% 
+  select(education,sex) %>% 
+  group_by(education, sex) %>% 
+  summarize(n_obs = n()) %>%  
+  knitr::kable(digits = 3)
+
+mytable
+
+#Visualization of the Age distributions 
+age_dist<-merged_covar_accel %>% 
+ggplot(aes(x=age , y=education, fill=sex), )+
+  geom_density_ridges(scale=.85, alpha=0.4)+
+  labs(title = "Age Distribution by Education and Sex",
+    x = "Age",
+    fill = "Sex",)
+  
+  age_dist
+  
 
 ```
+### Problem [3.2] Description of Friendly Table 
 
+Overall, we started with 250 participants. After exclusion criteria was applied, there were 228 partiicpant that were included for data anlysis. In the first education group of 1) LESS THAN A HIGH SCHOOL EDUCATION there is about and EQUAL number of males (28) and females (27). In the second education group 2)  HIGH SCHOOL EQUIVALENT there is approximately 1.5 more males (35) than females (23). In the last education group, 3) MORE THAN HIGH SCHOOL, there are roughly and EQUAL amount of males (56) to females (59). The larges discrepancy between males and females is betweens was found in the 2) HIGH SCHOOL EQUIVALENT group. 
+
+
+### Problem [3.2] Description of Visualization of the Age distributions 
+
+hhhhhhhhh 
+
+
+### Problem [3.3]
 Traditional analyses of accelerometer data focus on the total activity over the day. Using your tidied dataset, aggregate across minutes to create a total activity variable for each participant. Plot these total activities (y-axis) against age (x-axis); your plot should compare men to women and have separate panels for each education level. Include a trend line or a smooth to illustrate differences. Comment on your plot.
 
 ```{r}
 
+merged_covar_agg <- merged_covar_accel %>% #Taking merged dataset
+                    mutate(total_activityee = rowSums(select(merged_covar_accel,starts_with("min")))) %>% #Summing across minutes
+                    relocate(seqn, sex, age, bmi, education, total_activityee, everything()) #Relocating coulums to the front of dataset
+
+
+totact_plot = ggplot(merged_covar_agg , aes(x = age, y = total_activityee, color = sex, group=sex)) +
+  geom_point(alpha =0.6) +
+  geom_smooth(se = FALSE) +
+  facet_grid(~ education) +
+  theme(legend.position = "left")+
+  labs(title = "Total Activity Across Age Groups",
+       x="Age",
+       y="Total Activity")
+
+totact_plot 
+
+
+#%  mutate(merged_covar_accel , total_activ = rowSums(select(.,starts_with("min")))) %>% 
+
 ```
 
+### Problem [3.4]
 Accelerometer data allows the inspection activity over the course of the day. Make a three-panel plot that shows the 24-hour activity time courses for each education level and use color to indicate sex. Describe in words any patterns or conclusions you can make based on this graph; including smooth trends may help identify differences.
 
 ```{r}
+
+merged_final <- merged_covar_agg %>% 
+mutate(merged_covar_agg, hr_activity= total_activityee/60) %>% 
+relocate(seqn, sex, age, bmi, education, total_activityee, hr_activity, everything())
+
+
+my24hrplot =ggplot(merged_final, aes(x = hr_activity, fill = sex)) +
+  geom_density(alpha = .5) + 
+  facet_grid(~education) + 
+  viridis::scale_fill_viridis(discrete = TRUE) +
+  theme(legend.position = "bottom")
+
+my24hrplot
 
 ```
 
