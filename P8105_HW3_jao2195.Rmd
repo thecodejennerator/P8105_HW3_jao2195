@@ -7,6 +7,7 @@ output: github_document
 
 ################################################################################
 ### Problem 0 
+################################################################################
 This “problem” focuses on structure of your submission, especially the use git and GitHub for reproducibility, R Projects to organize your work, R Markdown to write reproducible reports, relative paths to load data from local files, and reasonable naming structures for your files.
 
 To that end:
@@ -23,6 +24,7 @@ This homework includes figures; the readability of your embedded plots (e.g. fon
 
 ################################################################################
 ### Problem 1
+################################################################################
 This problem uses the Instacart data. DO NOT include this dataset in your local data directory; instead, load the data from the p8105.datasets using:
 
 ```{r,message=FALSE}
@@ -41,12 +43,7 @@ library(p8105.datasets)
 ```
 
 ```{r setup, include=FALSE}
-library(tidyverse)
-library(ggridges)
-library(patchwork)
-
-library(p8105.datasets)
-
+#options
 knitr::opts_chunk$set(
 	echo = TRUE,
 	warning = FALSE,
@@ -55,6 +52,7 @@ knitr::opts_chunk$set(
   out.width = "90%"
 )
 
+#themeset
 theme_set(theme_minimal() + theme(legend.position = "bottom"))
 
 options(
@@ -62,6 +60,7 @@ options(
   ggplot2.continuous.fill = "viridis"
 )
 
+#themecolor palette
 scale_colour_discrete = scale_colour_viridis_d
 scale_fill_discrete = scale_fill_viridis_d
 
@@ -71,7 +70,6 @@ scale_fill_discrete = scale_fill_viridis_d
 #Loading Instacart Data 
 library(p8105.datasets)
 data("instacart")
-
 ```
 
 The goal is to do some exploration of this dataset. To that end, write a short description of the dataset, noting the size and structure of the data, describing some key variables, and giving illustrative examples of observations. Then, do or answer the following (commenting on the results of each):
@@ -81,20 +79,76 @@ Make a plot that shows the number of items ordered in each aisle, limiting this 
 
 ```{r}
 #Renaming main dataset
-insta = instacart
+data("instacart")
+
+instacart = 
+  instacart |> 
+  as_tibble()
 
 #class(insta)
 #Number of Aisles
 # View(insta)
-num_aisles = nrow(unique(insta$aisle))
-num_aisles
+# num_aisles = nrow(unique(insta$aisle))
+# num_aisles
+```
+#### Answer questions about the data
+
+This dataset contains `r nrow(instacart)` rows and `r ncol(instacart)` columns, with each row resprenting a single product from an instacart order. Variables include identifiers for user, order, and product; the order in which each product was added to the cart. There are several order-level variables, describing the day and time of the order, and number of days since prior order. Then there are several item-specific variables, describing the product name (e.g. Yogurt, Avocado), department (e.g. dairy and eggs, produce), and aisle (e.g. yogurt, fresh fruits), and whether the item has been ordered by this user in the past. In total, there are `r instacart |> select(product_id) |> distinct() |> count()` products found in `r instacart |> select(user_id, order_id) |> distinct() |> count()` orders from `r instacart |> select(user_id) |> distinct() |> count()` distinct users.
+
+
+Below is a table summarizing the number of items ordered from aisle. In total, there are 134 aisles, with fresh vegetables and fresh fruits holding the most items ordered by far.
+
+```{r}
+instacart |> 
+  count(aisle) |> 
+  arrange(desc(n))
 ```
 
-Make a table showing the three most popular items in each of the aisles “baking ingredients”, “dog food care”, and “packaged vegetables fruits”. Include the number of times each item is ordered in your table.
-Make a table showing the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week; format this table for human readers (i.e. produce a 2 x 7 table).
+Next is a plot that shows the number of items ordered in each aisle. Here, aisles are ordered by ascending number of items.
+
+```{r}
+instacart |> 
+  count(aisle) |> 
+  filter(n > 10000) |> 
+  mutate(aisle = fct_reorder(aisle, n)) |> 
+  ggplot(aes(x = aisle, y = n)) + 
+  geom_point() + 
+  labs(title = "Number of items ordered in each aisle") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+```
+
+Our next table shows the three most popular items in aisles `baking ingredients`, `dog food care`, and `packaged vegetables fruits`, and includes the number of times each item is ordered in your table.
+
+```{r}
+instacart |> 
+  filter(aisle %in% c("baking ingredients", "dog food care", "packaged vegetables fruits")) |>
+  group_by(aisle) |> 
+  count(product_name) |> 
+  mutate(rank = min_rank(desc(n))) |> 
+  filter(rank < 4) |> 
+  arrange(desc(n)) |>
+  knitr::kable()
+```
+
+Finally is a table showing the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week. This table has been formatted in an untidy manner for human readers. Pink Lady Apples are generally purchased slightly earlier in the day than Coffee Ice Cream, with the exception of day 5.
+
+```{r}
+instacart |>
+  filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) |>
+  group_by(product_name, order_dow) |>
+  summarize(mean_hour = mean(order_hour_of_day)) |>
+  pivot_wider(
+    names_from = order_dow, 
+    values_from = mean_hour) |>
+  knitr::kable(digits = 2)
+```
+
+
 
 ################################################################################
 ### Problem 2
+################################################################################
 
 #### Problem [2.1] - This problem uses the BRFSS data. DO NOT include this dataset in your local data directory; instead, load the data from the p8105.datasets package using
 
@@ -143,26 +197,25 @@ brfss_states_2010 = brfss %>% #Piping
 states2002 = select(brfss_states_2002,state)
 states2010 = select(brfss_states_2010,state)
 
-# There are `r nrow(states2002)` states that were observed at 7 or more locations in 2002. 
-# The `r nrow(states2002)` states in 2002 were: `r states2002`.
-# There are `r nrow(states2010)` states that were observed at 7 or more locations in 2010. 
-# The `r nrow(states2010)` states in 2010 were: `r states2002`.
-# There are `r nrow(states2010) - nrow(states2002)` more states that meet this criteria in 2010, than in 2002. 
 ```
 #### Problem [2.3] Comments on the Results of the Data:
 
+In this dataset, there are `r nrow(states2002)` states that were observed at 7 or more locations in 2002.
+There are `r nrow(states2010)` states that were observed at 7 or more locations in 2010.
+There are `r nrow(states2010) - nrow(states2002)` more states that meet this criteria in 2010, than in 2002.
 
 
 
 #### Problem [2.4] Construct a dataset that is limited to Excellent responses, and contains, year, state, and a variable that averages the data_value across locations within a state. Make a “spaghetti” plot of this average value over time within a state (that is, make a plot showing a line for each state across years – the geom_line geometry and group aesthetic will help).
 
 ```{r}
+#Data Limited to excellent reponses
 excellent_only <- brfss %>% 
   filter(response=="Excellent") %>% 
   group_by(year, state) %>% 
   summarize(average_data_value = mean(data_value, na.rm = TRUE))
 
-
+#Creating Spaghetti plot
 excellent_spaghetti_plot = ggplot(excellent_only, 
                            aes(x=year, y=average_data_value, color=state, group=state))+
                            geom_point()+
@@ -174,30 +227,38 @@ excellent_spaghetti_plot = ggplot(excellent_only,
                            )+
                            theme(legend.position = "left")
 
+#Plotting the Spaghetti plot
 excellent_spaghetti_plot
 ```
 
-Make a two-panel plot showing, for the years 2006, and 2010, distribution of data_value for responses (“Poor” to “Excellent”) among locations in NY State.
+#### Problem [2.5] Make a two-panel plot showing, for the years 2006, and 2010, distribution of data_value for responses (“Poor” to “Excellent”) among locations in NY State.
 
 ```{r}
 
+#Creating filter criteria 
 brfss_panel <- brfss %>% 
   filter(state=="NY" & year %in% c(2006,2010)) 
 
+#Ploting by filter criteria
+myplot = ggplot(brfss_panel, aes(x = data_value, fill = response)) +
+  geom_density(alpha = 0.5) +
+  facet_grid(~ year) +
+  viridis::scale_fill_viridis(discrete = TRUE)+
+  labs(title = "Distribution of data_value column From POOR to EXCELLENT",
+       x="Data Value",
+       y="Density")
 
-# myplot = ggplot(brfss_panel, aes(x = data_value, fill = response)) +
-#   geom_density(alpha = .) + 
-#   facet_grid(~ year) + 
-#   viridis::scale_fill_viridis(discrete = TRUE)+
-#   labs(title = "Poor” to “Excellent” Distribution of data_value",
-#        x="Data Value",
-#        y="Density")
-# 
-# myplot
+#Printng the plot
+myplot
 ```
+#### Problem [2.5] Comments on Plot 
+
+We can see, in general, that as the responses of the participants went from poor to fair,
+the data values increased. From good to very good it also increased in data value. However, the excellent responce fell in the middle with a data values around 20-25.
 
 ################################################################################
 ### Problem 3
+################################################################################
 
 Accelerometers have become an appealing alternative to self-report techniques for studying physical activity in observational studies and clinical trials, largely because of their relative objectivity. During observation periods, the devices can measure MIMS in a short period; one-minute intervals are common. Because accelerometers can be worn comfortably and unobtrusively, they produce around-the-clock observations.
 
@@ -219,7 +280,13 @@ nhanes_covar =  read_csv("nhanes_covar.csv",
 # Importing Nhanes Dataset Accel
 nhanes_accel =  read_csv("nhanes_accel.csv") %>% #Imporing Accelerometer data 
                 janitor::clean_names() # Cleaning Names
-  
+
+ # pivot_longer(
+ #    cols=c(min1:min1440), 
+ #    names_to = "minute", 
+ #    names_prefix = "min",
+ #    values_to = "mims"
+          
 # Merge NHANES COVAR & NHANES ACCEL
  merged_covar_accel= left_join(nhanes_covar, nhanes_accel, by= "seqn")
 
@@ -257,8 +324,7 @@ Overall, we started with 250 participants. After exclusion criteria was applied,
 
 ### Problem [3.2] Description of Visualization of the Age distributions 
 
-hhhhhhhhh 
-
+Distributions by age look very similar by education group. 
 
 ### Problem [3.3]
 Traditional analyses of accelerometer data focus on the total activity over the day. Using your tidied dataset, aggregate across minutes to create a total activity variable for each participant. Plot these total activities (y-axis) against age (x-axis); your plot should compare men to women and have separate panels for each education level. Include a trend line or a smooth to illustrate differences. Comment on your plot.
@@ -293,6 +359,7 @@ Accelerometer data allows the inspection activity over the course of the day. Ma
 
 merged_final <- merged_covar_agg %>% 
 mutate(merged_covar_agg, hr_activity= total_activityee/60) %>% 
+
 relocate(seqn, sex, age, bmi, education, total_activityee, hr_activity, everything())
 
 
@@ -304,6 +371,8 @@ my24hrplot =ggplot(merged_final, aes(x = hr_activity, fill = sex)) +
 
 my24hrplot
 
+
+
 ```
 
-
+#### We can see that for distribution for males and females are similar for less than high school and females have slightly more activity level in more of high school. 
